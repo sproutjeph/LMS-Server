@@ -39,15 +39,14 @@
   </head>
   <body>
     <div class="container">
-      <h1>Welcome, <%= user.username %>!</h1>
+      <h1>Welcome, <%= user.name %>!!</h1>
       <p>
         Thank you for registering on our website. We're excited to have you as a
         member of our community.
       </p>
       <p>To activate your account, please use the following activation code:</p>
-      <p><strong><%= user.activationCode %></strong></p>
-      <p>Click the link below to activate your account:</p>
-      <a href="<%= activationLink %>"><%= activationLink %></a>
+      <p><strong><%= activationCode %></strong></p>
+
       <p>
         If you have any questions or need assistance, feel free to contact our
         support team.
