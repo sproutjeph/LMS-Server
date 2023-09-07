@@ -10,7 +10,11 @@ import {
 import ejs from "ejs";
 import path from "path";
 import sendEmail from "../utils/sendMail";
-import { BadRequestError, UnauthenticatedError } from "../utils/ErrorHandler";
+import {
+  BadRequestError,
+  NotFoundError,
+  UnauthenticatedError,
+} from "../utils/ErrorHandler";
 import {
   accessTokenOptions,
   refreshTokenOptions,
@@ -18,6 +22,7 @@ import {
 } from "../utils/jwt";
 import { StatusCodes } from "http-status-codes";
 import { redis } from "../utils/redis";
+import { getUserById } from "../../services/user.services";
 
 interface IRegBody {
   name: string;
@@ -232,6 +237,17 @@ export const updateAccessToken = CatchAsyncError(
       });
     } catch (error: any) {
       throw new UnauthenticatedError(`${error.message}`);
+    }
+  }
+);
+
+export const getUserInfo = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user?._id;
+      getUserById(userId, res);
+    } catch (error: any) {
+      throw new NotFoundError(`${error.message}`);
     }
   }
 );
