@@ -8,6 +8,7 @@ import path from "path";
 import sendEmail from "../utils/sendMail";
 import { BadRequestError, UnauthenticatedError } from "../utils/ErrorHandler";
 import { sendToken } from "../utils/jwt";
+import { StatusCodes } from "http-status-codes";
 
 interface IRegBody {
   name: string;
@@ -163,6 +164,21 @@ export const loginUser = CatchAsyncError(
       sendToken(user, 200, res);
     } catch (error: any) {
       throw new BadRequestError(`${error.message}`);
+    }
+  }
+);
+
+export const logoutUser = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.cookie("access_token", "", { maxAge: 1 });
+      res.cookie("refresh_token", "", { maxAge: 1 });
+      res.status(200).json({
+        success: true,
+        message: "Logged out successfully",
+      });
+    } catch (error: any) {
+      throw new UnauthenticatedError(`${error.message}`);
     }
   }
 );
