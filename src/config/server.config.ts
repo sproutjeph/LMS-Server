@@ -24,3 +24,8 @@ export const SMTP_PORT = process.env.SMTP_PORT;
 export const SMTP_SERVER = process.env.SMTP_SERVER;
 export const SMTP_MAIL = process.env.SMTP_MAIL;
 export const SMTP_PASSWORD = process.env.SMTP_PASSWORD;
+
+export const ACCESS_TOKEN = process.env.ACCESS_TOKEN;
+export const REFRESH_TOKEN = process.env.REFRESH_TOKEN;
+export const ACCESS_TOKEN_EXPIRE = process.env.ACCESS_TOKEN_EXPIRE;
+export const REFRESH_TOKEN_EXPIRE = process.env.REFRESH_TOKEN_EXPIRE;

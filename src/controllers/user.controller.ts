@@ -6,7 +6,8 @@ import { ACTIVATION_SECRET } from "../config/server.config";
 import ejs from "ejs";
 import path from "path";
 import sendEmail from "../utils/sendMail";
-import { BadRequestError } from "../utils/ErrorHandler";
+import { BadRequestError, UnauthenticatedError } from "../utils/ErrorHandler";
+import { sendToken } from "../utils/jwt";
 
 interface IRegBody {
   name: string;
@@ -131,6 +132,37 @@ export const activateUser = CatchAsyncError(
       throw new BadRequestError(`${error.message}`);
 
       // return next(new ErrorHandler(500, error.message));
+    }
+  }
+);
+
+// longin user
+interface ILoginUser {
+  email: string;
+  password: string;
+}
+
+export const loginUser = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        throw new BadRequestError(`Email and password is required`);
+      }
+      const user = await userModel.findOne({ email }).select("+password");
+
+      if (!user) {
+        throw new UnauthenticatedError("User not found");
+      }
+
+      const isPasswordMatch = await user.comparePassword(password);
+
+      if (!isPasswordMatch) {
+        throw new BadRequestError(`invalid password`);
+      }
+      sendToken(user, 200, res);
+    } catch (error: any) {
+      throw new BadRequestError(`${error.message}`);
     }
   }
 );

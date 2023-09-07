@@ -1,5 +1,7 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { ACCESS_TOKEN, REFRESH_TOKEN } from "../config/server.config";
 
 const HASH_VALUE = 10;
 
@@ -17,6 +19,9 @@ export interface IUser extends Document {
   role: string;
   isVerified: boolean;
   courses: Array<{ courseId: string }>;
+  comparePassword: (password: string) => Promise<boolean>;
+  SignAccessToken: () => string;
+  SignRefreshToken: () => string;
 }
 
 const userSchema: Schema<IUser> = new Schema(
@@ -69,6 +74,15 @@ userSchema.pre<IUser>("save", async function (next) {
   this.password = await bcrypt.hash(this.password, HASH_VALUE);
   next();
 });
+
+// sign acces token
+userSchema.methods.SignAccessToken = function () {
+  return jwt.sign({ id: this._id }, ACCESS_TOKEN || "");
+};
+// sign resfresh token
+userSchema.methods.SignRefreshToken = function () {
+  return jwt.sign({ id: this._id }, REFRESH_TOKEN || "");
+};
 
 // Compare password
 userSchema.methods.comparePassword = async function (enteredPassword: string) {
