@@ -1,14 +1,23 @@
 import { Request, Response, NextFunction } from "express";
 import { CatchAsyncError } from "../middleware/catchAsyncErrors";
 import userModel, { IUser } from "../model/user.model";
-import jwt, { Secret } from "jsonwebtoken";
-import { ACTIVATION_SECRET } from "../config/server.config";
+import jwt, { JwtHeader, JwtPayload, Secret } from "jsonwebtoken";
+import {
+  ACCESS_TOKEN,
+  ACTIVATION_SECRET,
+  REFRESH_TOKEN,
+} from "../config/server.config";
 import ejs from "ejs";
 import path from "path";
 import sendEmail from "../utils/sendMail";
 import { BadRequestError, UnauthenticatedError } from "../utils/ErrorHandler";
-import { sendToken } from "../utils/jwt";
+import {
+  accessTokenOptions,
+  refreshTokenOptions,
+  sendToken,
+} from "../utils/jwt";
 import { StatusCodes } from "http-status-codes";
+import { redis } from "../utils/redis";
 
 interface IRegBody {
   name: string;
@@ -173,9 +182,53 @@ export const logoutUser = CatchAsyncError(
     try {
       res.cookie("access_token", "", { maxAge: 1 });
       res.cookie("refresh_token", "", { maxAge: 1 });
+      const userId = req.user?._id || "";
+      redis.del(userId);
       res.status(200).json({
         success: true,
         message: "Logged out successfully",
+      });
+    } catch (error: any) {
+      throw new UnauthenticatedError(`${error.message}`);
+    }
+  }
+);
+
+// update access token
+export const updateAccessToken = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const refresh_token = req.cookies.refresh_token;
+      const decoded = jwt.verify(
+        refresh_token,
+        REFRESH_TOKEN as string
+      ) as JwtPayload;
+      const message = "could not refresh token";
+      if (!decoded) {
+        throw new UnauthenticatedError(message);
+      }
+
+      const session = await redis.get(decoded.id as string);
+      if (!session) {
+        throw new UnauthenticatedError(message);
+      }
+
+      const user = JSON.parse(session);
+      const accessToken = jwt.sign({ id: user._id }, ACCESS_TOKEN as string, {
+        expiresIn: "5m",
+      });
+
+      const refreshToken = jwt.sign({ id: user._id }, REFRESH_TOKEN as string, {
+        expiresIn: "3d",
+      });
+
+      res.cookie("access_token", accessToken, accessTokenOptions);
+
+      res.cookie("refresh_token", refresh_token, refreshTokenOptions);
+
+      res.status(200).json({
+        status: "success",
+        accessToken,
       });
     } catch (error: any) {
       throw new UnauthenticatedError(`${error.message}`);
