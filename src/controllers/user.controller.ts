@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { CatchAsyncError } from "../middleware/catchAsyncErrors";
 import userModel, { IUser } from "../model/user.model";
-import jwt, { JwtHeader, JwtPayload, Secret } from "jsonwebtoken";
+import jwt, { JwtPayload, Secret } from "jsonwebtoken";
 import {
   ACCESS_TOKEN,
   ACTIVATION_SECRET,
@@ -23,6 +23,7 @@ import {
 import { StatusCodes } from "http-status-codes";
 import { redis } from "../utils/redis";
 import { getUserById } from "../../services/user.services";
+import { error } from "console";
 
 interface IRegBody {
   name: string;
@@ -314,6 +315,48 @@ export const updateUserInfo = CatchAsyncError(
       await user?.save();
 
       await redis.set(userId, JSON.stringify(user));
+
+      res.status(201).json({
+        success: true,
+        user,
+      });
+    } catch (error: any) {
+      throw new BadRequestError(`${error.message}`);
+    }
+  }
+);
+
+// update user password
+
+interface IUpdateUserPassword {
+  oldPassword: string;
+  newPassword: string;
+}
+
+export const updateUserPassword = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { oldPassword, newPassword } = req.body as IUpdateUserPassword;
+
+      if (!oldPassword || !newPassword) {
+        throw new BadRequestError("plaese enter old and new password");
+      }
+
+      const user = await userModel.findById(req.user?._id).select("+password");
+      if (user?.password === undefined) {
+        throw new BadRequestError("Invalid user");
+      }
+
+      const isPasswordMatch = await user?.comparePassword(oldPassword);
+
+      if (!isPasswordMatch) {
+        throw new UnauthenticatedError("Invalid old password");
+      }
+
+      user.password = newPassword;
+      await user.save();
+
+      await redis.set(req.user?._id, JSON.stringify(user));
 
       res.status(201).json({
         success: true,
