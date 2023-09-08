@@ -21,7 +21,6 @@ interface ICourseData extends Document {
   title: string;
   description: string;
   videoUrl: string;
-
   videoThumbnail: object;
   videoSection: string;
   videoLength: number;
@@ -69,12 +68,12 @@ const commentSchema = new Schema<IComment>({
 });
 const courseDataSchema = new Schema<ICourseData>({
   videoUrl: String,
-  videoThumbnail: Object,
   title: String,
   videoSection: String,
   description: String,
   videoLength: Number,
   videoPlayer: String,
+  links: [linksSchema],
   suggestion: String,
   questions: [commentSchema],
 });
@@ -97,12 +96,10 @@ const couserSchema = new Schema<ICourse>({
   },
   thumbnail: {
     public_id: {
-      required: true,
       type: String,
     },
     url: {
-      required: true,
-      typeL: String,
+      type: String,
     },
   },
 
@@ -121,6 +118,7 @@ const couserSchema = new Schema<ICourse>({
   benefits: [{ title: String }],
   prerequisites: [{ title: String }],
   reviews: [reviewSchema],
+  courseData: [courseDataSchema],
   ratings: {
     type: Number,
     default: 0,
@@ -132,3 +130,5 @@ const couserSchema = new Schema<ICourse>({
 });
 
 const CourseModel: Model<ICourse> = mongoose.model("Course", couserSchema);
+
+export default CourseModel;
