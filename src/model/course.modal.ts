@@ -78,7 +78,7 @@ const courseDataSchema = new Schema<ICourseData>({
   questions: [commentSchema],
 });
 
-const couserSchema = new Schema<ICourse>({
+const courseSchema = new Schema<ICourse>({
   name: {
     type: String,
     required: true,
@@ -129,6 +129,6 @@ const couserSchema = new Schema<ICourse>({
   },
 });
 
-const CourseModel: Model<ICourse> = mongoose.model("Course", couserSchema);
+const CourseModel: Model<ICourse> = mongoose.model("Course", courseSchema);
 
 export default CourseModel;
