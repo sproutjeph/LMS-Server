@@ -20,10 +20,9 @@ import {
   refreshTokenOptions,
   sendToken,
 } from "../utils/jwt";
-import { StatusCodes } from "http-status-codes";
 import { redis } from "../utils/redis";
 import { getUserById } from "../../services/user.services";
-import { error } from "console";
+import cloudinary from "cloudinary";
 
 interface IRegBody {
   name: string;
@@ -359,6 +358,59 @@ export const updateUserPassword = CatchAsyncError(
       await redis.set(req.user?._id, JSON.stringify(user));
 
       res.status(201).json({
+        success: true,
+        user,
+      });
+    } catch (error: any) {
+      throw new BadRequestError(`${error.message}`);
+    }
+  }
+);
+
+// update user vatar
+
+interface IUpdateUserVatar {
+  avatar: string;
+}
+
+export const updateUserVatar = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { avatar } = req.body;
+      const userId = req.user?._id;
+      const user = await userModel.findById(userId);
+
+      if (avatar && user) {
+        // if user has an vatar already call this
+        if (user?.avatar?.public_id) {
+          // first delete the old image
+          await cloudinary.v2.uploader.destroy(user?.avatar?.public_id);
+
+          const myCloud = await cloudinary.v2.uploader.upload(avatar, {
+            folder: "avatars",
+            width: 150,
+          });
+
+          user.avatar = {
+            public_id: myCloud.public_id,
+            url: myCloud.secure_url,
+          };
+        } else {
+          const myCloud = await cloudinary.v2.uploader.upload(avatar, {
+            folder: "avatars",
+            width: 150,
+          });
+
+          user.avatar = {
+            public_id: myCloud.public_id,
+            url: myCloud.secure_url,
+          };
+        }
+      }
+      await user?.save();
+      await redis.set(userId, JSON.stringify(user));
+
+      res.status(200).json({
         success: true,
         user,
       });
