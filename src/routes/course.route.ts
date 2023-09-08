@@ -1,7 +1,10 @@
 import express from "express";
 import { authorizeRoles, isAuthenticated } from "../middleware/auth";
 import {
+  addQuestion,
   editCourse,
+  getAllCourses,
+  getCoursesByUser,
   getSingleCourse,
   uploadCourse,
 } from "../controllers/course.controller";
@@ -21,5 +24,8 @@ router.put(
   editCourse
 );
 router.get("/get-course/:id", getSingleCourse);
+router.get("/get-courses", getAllCourses);
+router.get("/get-course-content/:id", isAuthenticated, getCoursesByUser);
+router.put("/add-question", isAuthenticated, addQuestion);
 
 export default router;

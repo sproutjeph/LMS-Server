@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import cloudinary from "cloudinary";
 import { CatchAsyncError } from "../middleware/catchAsyncErrors";
-import { BadRequestError } from "../utils/ErrorHandler";
+import { BadRequestError, UnauthorizedError } from "../utils/ErrorHandler";
 import { createCourse } from "../../services/course.service";
 import CourseModel from "../model/course.modal";
+import { redis } from "../utils/redis";
+import mongoose from "mongoose";
 
 export const uploadCourse = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -69,9 +71,131 @@ export const editCourse = CatchAsyncError(
 export const getSingleCourse = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const course = await CourseModel.findById(req.params.id).select(
-        "-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links"
+      const courseId = req.params.id;
+
+      // checked for chached data
+      const isChachedExist = await redis.get(courseId);
+      if (isChachedExist) {
+        const course = JSON.parse(isChachedExist);
+        res.status(200).json({
+          success: true,
+          course,
+        });
+      } else {
+        const course = await CourseModel.findById(req.params.id).select(
+          "-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links"
+        );
+
+        // chach data
+        await redis.set(courseId, JSON.stringify(course));
+
+        res.status(200).json({
+          success: true,
+          course,
+        });
+      }
+    } catch (error: any) {
+      throw new BadRequestError(`${error.message}`);
+    }
+  }
+);
+
+//get all course -- without purchasing
+
+export const getAllCourses = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const isChachedExist = await redis.get("allCourses");
+      if (isChachedExist) {
+        const courses = JSON.parse(isChachedExist);
+        res.status(200).json({
+          success: true,
+          courses,
+        });
+      } else {
+        const courses = await CourseModel.find().select(
+          "-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links"
+        );
+
+        await redis.set("allCourses", JSON.stringify(courses));
+
+        res.status(200).json({
+          success: true,
+          courses,
+        });
+      }
+    } catch (error: any) {
+      throw new BadRequestError(`${error.message}`);
+    }
+  }
+);
+
+// get course content for valid users
+
+export const getCoursesByUser = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userCourseList = req.user?.courses;
+      const courseId = req.params.id;
+
+      const courseExists = userCourseList?.find(
+        (course: any) => course._id.toString() === courseId
       );
+
+      if (!courseExists) {
+        throw new UnauthorizedError(
+          "You are not eligible to access this course"
+        );
+      }
+
+      const course = await CourseModel.findById(courseId);
+      const content = course?.courseData;
+
+      res.status(200).json({
+        success: true,
+        content,
+      });
+    } catch (error: any) {
+      throw new BadRequestError(`${error.message}`);
+    }
+  }
+);
+
+// add quest in course
+interface IAddQuestionData {
+  question: string;
+  courseId: string;
+  contentId: string;
+}
+
+export const addQuestion = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { question, contentId, courseId }: IAddQuestionData = req.body;
+      const course = await CourseModel.findById(courseId);
+
+      if (!mongoose.Types.ObjectId.isValid(contentId)) {
+        throw new BadRequestError("Invalid content id");
+      }
+
+      const courseContent = course?.courseData?.find((item: any) =>
+        item._id.equals(contentId)
+      );
+
+      if (!courseContent) {
+        throw new BadRequestError("Invalid content id");
+      }
+      // create a new question object
+      const newQuestion: any = {
+        user: req.user,
+        question,
+        questionReplies: [],
+      };
+      // add this to our course content
+      courseContent.questions.push(newQuestion);
+
+      //save the course
+      await course?.save();
 
       res.status(200).json({
         success: true,
