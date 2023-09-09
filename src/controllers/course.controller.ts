@@ -9,6 +9,8 @@ import mongoose from "mongoose";
 import path from "path";
 import ejs from "ejs";
 import sendEmail from "../utils/sendMail";
+import NotificationModal from "../model/notification.modal";
+import cron from "node-cron";
 
 export const uploadCourse = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -196,6 +198,11 @@ export const addQuestion = CatchAsyncError(
       };
       // add this to our course content
       courseContent.questions.push(newQuestion);
+      await NotificationModal.create({
+        user: req.user?._id,
+        title: "New Question Received",
+        message: `You have a new question in ${courseContent.title}`,
+      });
 
       //save the course
       await course?.save();
@@ -257,7 +264,11 @@ export const addAnswer = CatchAsyncError(
       await course?.save();
 
       if (req.user?._id === question.user._id) {
-        //create a notification
+        await NotificationModal.create({
+          user: req.user?._id,
+          title: "New Question",
+          message: `You have a new question in ${courseContent.title}`,
+        });
       } else {
         const data = {
           name: question.user.name,
@@ -338,6 +349,7 @@ export const addReview = CatchAsyncError(
         message: `${req.user?.name} has given a review in ${course?.name}`,
       };
       // create notification
+      await NotificationModal.create(notification);
 
       res.status(200).json({
         success: true,
@@ -396,3 +408,21 @@ export const addReply = CatchAsyncError(
     }
   }
 );
+
+//delete notification
+
+cron.schedule("0 0 0 * * *", async () => {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  try {
+    const notifications = await NotificationModal.find({
+      status: "read",
+      createdAt: { $lt: thirtyDaysAgo },
+    });
+
+    if (notifications) {
+      await NotificationModal.deleteMany(notifications);
+    }
+  } catch (error: any) {
+    throw new BadRequestError(`${error.message}`);
+  }
+});
