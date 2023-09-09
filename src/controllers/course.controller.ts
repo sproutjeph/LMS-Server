@@ -338,6 +338,55 @@ export const addReview = CatchAsyncError(
         message: `${req.user?.name} has given a review in ${course?.name}`,
       };
       // create notification
+
+      res.status(200).json({
+        success: true,
+        course,
+      });
+    } catch (error: any) {
+      throw new BadRequestError(`${error.message}`);
+    }
+  }
+);
+
+// add reply in course review
+interface IAddReplyData {
+  comment: string;
+  courseId: string;
+  reviewId: string;
+}
+export const addReply = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { comment, courseId, reviewId } = req.body as IAddReplyData;
+
+      const course = await CourseModel.findById(courseId);
+
+      if (!course) {
+        throw new BadRequestError("Course not found");
+      }
+
+      const review = course?.reviews?.find(
+        (rev: any) => String(rev._id) === String(reviewId)
+      );
+
+      if (!review) {
+        throw new BadRequestError("Review not found");
+      }
+
+      const replyData: any = {
+        user: req.user,
+        comment,
+      };
+
+      if (!review.commentReplies) {
+        review.commentReplies = [];
+      }
+
+      review.commentReplies?.push(replyData);
+
+      await course?.save();
+
       res.status(200).json({
         success: true,
         course,
