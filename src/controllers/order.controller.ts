@@ -38,7 +38,7 @@ export const createOrder = CatchAsyncError(
 
       const mailData = {
         order: {
-          _id: course._id.slice(0, 6),
+          _id: course._id.toString().slice(0, 6),
           name: course.name,
           price: course.price,
           date: new Date().toLocaleDateString("en-us", {
@@ -76,10 +76,10 @@ export const createOrder = CatchAsyncError(
         message: `You have a new order ${course?.name}`,
       });
 
-      res.status(201).json({
-        success: true,
-        order: course,
-      });
+      course.purchased ? (course.purchased += 1) : course.purchased;
+      await course.save();
+
+      newOrder(data, res, next);
     } catch (error: any) {
       throw new BadRequestError(error.message);
     }
