@@ -2,7 +2,10 @@ import { Request, Response, NextFunction } from "express";
 import cloudinary from "cloudinary";
 import { CatchAsyncError } from "../middleware/catchAsyncErrors";
 import { BadRequestError, UnauthorizedError } from "../utils/ErrorHandler";
-import { createCourse } from "../../services/course.service";
+import {
+  createCourse,
+  getAllCoursesService,
+} from "../../services/course.service";
 import CourseModel from "../model/course.modal";
 import { redis } from "../utils/redis";
 import mongoose from "mongoose";
@@ -426,3 +429,14 @@ cron.schedule("0 0 0 * * *", async () => {
     throw new BadRequestError(`${error.message}`);
   }
 });
+
+// Get all courses
+export const getAllCoursesAdim = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      getAllCoursesService(res);
+    } catch (error: any) {
+      throw new BadRequestError(`${error.message}`);
+    }
+  }
+);

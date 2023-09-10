@@ -1,5 +1,6 @@
 import { Response } from "express";
 import { redis } from "../src/utils/redis";
+import userModel from "../src/model/user.model";
 // get user by id
 
 export const getUserById = async (id: string, res: Response) => {
@@ -12,4 +13,15 @@ export const getUserById = async (id: string, res: Response) => {
       user,
     });
   }
+};
+
+// get all users
+
+export const getAllUsersService = async (res: Response) => {
+  const users = await userModel.find().sort({ createdAt: -1 });
+
+  res.status(201).json({
+    success: true,
+    users,
+  });
 };

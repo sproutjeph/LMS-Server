@@ -5,7 +5,7 @@ import { Iorder } from "../model/order.modal";
 import userModel from "../model/user.model";
 import { BadRequestError } from "../utils/ErrorHandler";
 import CourseModel from "../model/course.modal";
-import { newOrder } from "../../services/order.service";
+import { getAllOrdersService, newOrder } from "../../services/order.service";
 import path from "path";
 import sendEmail from "../utils/sendMail";
 import NotificationModal from "../model/notification.modal";
@@ -82,6 +82,17 @@ export const createOrder = CatchAsyncError(
       newOrder(data, res, next);
     } catch (error: any) {
       throw new BadRequestError(error.message);
+    }
+  }
+);
+
+// Get all orders for Adim
+export const getAllOrdersAdim = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      getAllOrdersService(res);
+    } catch (error: any) {
+      throw new BadRequestError(`${error.message}`);
     }
   }
 );
