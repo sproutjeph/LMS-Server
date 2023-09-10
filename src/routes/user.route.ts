@@ -1,6 +1,7 @@
 import express from "express";
 import {
   activateUser,
+  getAllUsers,
   getUserInfo,
   loginUser,
   logoutUser,
@@ -9,9 +10,10 @@ import {
   updateAccessToken,
   updateUserInfo,
   updateUserPassword,
+  updateUserRole,
   updateUserVatar,
 } from "../controllers/user.controller";
-import { isAuthenticated } from "../middleware/auth";
+import { authorizeRoles, isAuthenticated } from "../middleware/auth";
 
 const router = express.Router();
 
@@ -25,5 +27,12 @@ router.post("/socailAuth", isAuthenticated, socailAuth);
 router.put("/update-user-info", isAuthenticated, updateUserInfo);
 router.put("/update-password", isAuthenticated, updateUserPassword);
 router.put("/update-avatar", isAuthenticated, updateUserVatar);
+router.get("/get-users", isAuthenticated, authorizeRoles("admin"), getAllUsers);
+router.put(
+  "/update-user-role",
+  isAuthenticated,
+  authorizeRoles("admin"),
+  updateUserRole
+);
 
 export default router;
