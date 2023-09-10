@@ -95,7 +95,7 @@ export const getSingleCourse = CatchAsyncError(
         );
 
         // chach data
-        await redis.set(courseId, JSON.stringify(course));
+        await redis.set(courseId, JSON.stringify(course), "EX", 604800); // "EX" 604800 delete cach data after 7 days
 
         res.status(200).json({
           success: true,

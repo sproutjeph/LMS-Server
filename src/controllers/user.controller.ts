@@ -222,7 +222,7 @@ export const updateAccessToken = CatchAsyncError(
 
       const session = await redis.get(decoded.id as string);
       if (!session) {
-        throw new UnauthenticatedError(message);
+        throw new UnauthenticatedError("please login to access this resources");
       }
 
       const user = JSON.parse(session);
@@ -239,6 +239,8 @@ export const updateAccessToken = CatchAsyncError(
       res.cookie("access_token", accessToken, accessTokenOptions);
 
       res.cookie("refresh_token", refreshToken, refreshTokenOptions);
+      const redisEXday = 604800; // 7days
+      await redis.set(user._id, JSON.stringify(user), "EX", redisEXday);
 
       res.status(200).json({
         status: "success",

@@ -29,7 +29,7 @@ export const isAuthenticated = CatchAsyncError(
     const user = await redis.get(decodeed.id);
 
     if (!user) {
-      throw new NotFoundError("user not found");
+      throw new NotFoundError("please login to access this resources");
     }
 
     req.user = JSON.parse(user);
